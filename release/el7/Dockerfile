@@ -1,31 +1,38 @@
 FROM centos:7
 MAINTAINER Andrew Bauer <zonexpertconsulting@outlook.com>
 
-# Enable the EPEL repo. The repo package is part of centos base so no need fetch it.
-RUN yum -y install epel-release
+# Get the entrypoint script
+ADD https://raw.githubusercontent.com/ZoneMinder/zmdockerfiles/master/utils/entrypoint.sh /usr/local/bin/
 
-# Fetch and enable the RPMFusion repo
-RUN yum -y localinstall --nogpgcheck https://download1.rpmfusion.org/free/el/rpmfusion-free-release-7.noarch.rpm
+## Dependencies layer
+RUN \
+  # Enable the EPEL repo. The repo package is part of centos base so no need fetch it.
+  yum -y install epel-release \
+  # Fetch and enable the RPMFusion repo
+  && yum -y localinstall --nogpgcheck https://download1.rpmfusion.org/free/el/rpmfusion-free-release-7.noarch.rpm \
+  # Install dependencies
+  && yum -y install mariadb-server mod_ssl zip file \
+  # Clean up yum cache
+  && yum clean all \
+  # Make sure the entrypoint is executable
+  && chmod 755 /usr/local/bin/entrypoint.sh
 
-# Install the latest *release* of zoneminder
-RUN yum -y install zoneminder mariadb-server mod_ssl zip
+## ZoneMinder layer
+RUN \
+  # Install the latest *release* of zoneminder
+  yum -y install zoneminder \
+  # Clean up yum cache
+  && yum clean all \
+  # Configure Apache
+  && ln -sf /etc/zm/www/zoneminder.conf /etc/httpd/conf.d/ \
+  && echo "ServerName localhost" > /etc/httpd/conf.d/servername.conf \
+  && echo -e "# Redirect the webroot to /zm\nRedirectMatch permanent ^/$ /zm" > /etc/httpd/conf.d/redirect.conf
 
-# Initialize the database server
-RUN mysql_install_db --user=mysql --ldata=/var/lib/mysql/
-
-# Set our volumes before we attempt to configure apache
-VOLUME /var/lib/zoneminder/images /var/lib/zoneminder/events /var/lib/mysql /var/log/zoneminder
-
-# Configure Apache
-RUN echo "ServerName localhost" > /etc/httpd/conf.d/servername.conf
-RUN echo -e "# Redirect the webroot to /zm\nRedirectMatch permanent ^/$ /zm" > /etc/httpd/conf.d/redirect.conf
+# Set our volumes before we do anything else
+VOLUME /var/lib/zoneminder/events /var/lib/mysql /var/log/zoneminder
 
 # Expose https port
 EXPOSE 443
-
-# Get the entrypoint script and make sure it is executable
-ADD https://raw.githubusercontent.com/ZoneMinder/zmdockerfiles/master/utils/entrypoint.sh /usr/local/bin/
-RUN chmod 755 /usr/local/bin/entrypoint.sh
 
 # This is run each time the container is started
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
@@ -55,7 +62,6 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 #
 # docker run -d -t -p 1080:443 \
 #    -v /disk/zoneminder/events:/var/lib/zoneminder/events \
-#    -v /disk/zoneminder/images:/var/lib/zoneminder/images \
 #    -v /disk/zoneminder/mysql:/var/lib/mysql \
 #    -v /disk/zoneminder/logs:/var/log/zm \
 #    --name zoneminder \
@@ -69,7 +75,6 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 #    -e ZM_DB_NAME='zoneminder_database' \
 #    -e ZM_DB_HOST='my_central_db_server' \
 #    -v /disk/zoneminder/events:/var/lib/zoneminder/events \
-#    -v /disk/zoneminder/images:/var/lib/zoneminder/images \
 #    -v /disk/zoneminder/logs:/var/log/zm \
 #    --name zoneminder \
 #    zoneminder/zoneminder
@@ -79,7 +84,6 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 # docker run -d -t -p 1080:443 \
 #    -e TZ='America/Los_Angeles' \
 #    -v /disk/zoneminder/events:/var/lib/zoneminder/events \
-#    -v /disk/zoneminder/images:/var/lib/zoneminder/images \
 #    -v /disk/zoneminder/mysql:/var/lib/mysql \
 #    -v /disk/zoneminder/logs:/var/log/zm \
 #    --shm-size="512m" \
@@ -95,7 +99,6 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 #    -e ZM_DB_NAME='zoneminder_database' \
 #    -e ZM_DB_HOST='my_central_db_server' \
 #    -v /disk/zoneminder/events:/var/lib/zoneminder/events \
-#    -v /disk/zoneminder/images:/var/lib/zoneminder/images \
 #    -v /disk/zoneminder/logs:/var/log/zm \
 #    --shm-size="512m" \
 #    --name zoneminder \

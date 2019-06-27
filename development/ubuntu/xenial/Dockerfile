@@ -54,6 +54,22 @@ RUN apt-get update \
     libvorbis-dev \
     libvpx-dev \
     libwww-perl \
+    libjson-any-perl \
+    libjson-maybexs-perl \
+    libnumber-bytes-human-perl \
+    libsoap-wsdl-perl \
+    libio-socket-multicast-perl \
+    libphp-serialization-perl \
+    libimage-info-perl \
+    liburi-encode-perl \
+    libdata-dump-perl \
+    libclass-std-fast-perl \
+    libdigest-sha-perl \
+    libdata-uuid-perl \
+    libfile-slurp-perl \
+    libcrypt-eksblowfish-perl \
+    libdata-entropy-perl \
+    perl-modules \
     libx264-dev \
     mysql-client \
     mysql-server \
@@ -88,7 +104,7 @@ RUN make && make install
 RUN ./zmlinkcontent.sh
 
 # Set our volumes before we attempt to configure apache
-VOLUME /var/lib/zoneminder/images /var/lib/zoneminder/events /var/lib/mysql /var/log/zm
+VOLUME /var/lib/zoneminder/events /var/lib/mysql /var/log/zm
 
 # Stop Apache and Mysql before we configure them
 RUN service mysql stop && service apache2 stop
@@ -96,10 +112,11 @@ RUN service mysql stop && service apache2 stop
 # Configure Apache
 RUN cp misc/apache.conf /etc/apache2/sites-available/000-default.conf
 RUN echo "ServerName localhost" > /etc/apache2/conf-available/servername.conf && a2enconf -q servername
-RUN a2enmod -q cgi && a2enmod -q rewrite
+RUN a2enmod -q rewrite && a2enmod -q cgi
 
 # Configure mysql
-RUN echo "sql_mode=NO_ENGINE_SUBSTITUTION" >> /etc/mysql/mysql.conf.d/mysqld.cnf
+# No longer needed for zm >= 1.32.0
+#RUN echo "sql_mode=NO_ENGINE_SUBSTITUTION" >> /etc/mysql/mysql.conf.d/mysqld.cnf
 
 # Expose http port
 EXPOSE 80
@@ -136,7 +153,6 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 #
 # docker run -d -t -p 1080:80 \
 #    -v /disk/zoneminder/events:/var/lib/zoneminder/events \
-#    -v /disk/zoneminder/images:/var/lib/zoneminder/images \
 #    -v /disk/zoneminder/mysql:/var/lib/mysql \
 #    -v /disk/zoneminder/logs:/var/log/zm \
 #    --name zoneminder \
@@ -150,7 +166,6 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 #    -e ZM_DB_NAME='zoneminder_database' \
 #    -e ZM_DB_HOST='my_central_db_server' \
 #    -v /disk/zoneminder/events:/var/lib/zoneminder/events \
-#    -v /disk/zoneminder/images:/var/lib/zoneminder/images \
 #    -v /disk/zoneminder/logs:/var/log/zm \
 #    --name zoneminder \
 #    zoneminder/zoneminder
@@ -160,7 +175,6 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 # docker run -d -t -p 1080:80 \
 #    -e TZ='America/Los_Angeles' \
 #    -v /disk/zoneminder/events:/var/lib/zoneminder/events \
-#    -v /disk/zoneminder/images:/var/lib/zoneminder/images \
 #    -v /disk/zoneminder/mysql:/var/lib/mysql \
 #    -v /disk/zoneminder/logs:/var/log/zm \
 #    --shm-size="512m" \
@@ -176,7 +190,6 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 #    -e ZM_DB_NAME='zoneminder_database' \
 #    -e ZM_DB_HOST='my_central_db_server' \
 #    -v /disk/zoneminder/events:/var/lib/zoneminder/events \
-#    -v /disk/zoneminder/images:/var/lib/zoneminder/images \
 #    -v /disk/zoneminder/logs:/var/log/zm \
 #    --shm-size="512m" \
 #    --name zoneminder \
